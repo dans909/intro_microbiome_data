@@ -40,7 +40,7 @@ loaded <- sapply(c(bioc_pkg, cran_pkg), require, character.only = TRUE)
 as.data.frame(loaded)
 ```
 
-## [importing data into R](https://microbiome.github.io/course_2021_radboud/importing-microbiome-data.html)
+## [Lesson 1: importing data into R](https://microbiome.github.io/course_2021_radboud/importing-microbiome-data.html)
 
 ## Lesson 1: objectives
 
@@ -63,9 +63,9 @@ Summarizedexperiment contains the following:
 
 - SampleIDs: sample IDs, column names in assays, row names in colData
 
+### *Note that all embedded chunks will be hidden, unhide them (include=TRUE) if you want to see them for info!*
 
-
-```{r importing data}
+```{r importing data, include=FALSE}
 #data is being imported in Biom, csv and tre format; biom contains abundance table and taxonomy information; csv contains sample metadata, tree file contains phylogenetic tree
 
 #first create objects for their file paths
@@ -141,3 +141,82 @@ head(rowTree(tse))
 
 ```
 
+## [Lesson 2: exploring data](https://microbiome.github.io/course_2021_radboud/microbiome-data-exploration.html)
+
+## Lesson 2: objectives
+- Microbial abundances are relative, so we need to calculate them; they are easier to interpret than plain counts; refer to [this](https://microbiome.github.io/mia/reference/transformCounts.html) to find out the ways to transform counts
+
+- You can also agglomerate (sum up all data) by taxonomic rank
+
+### Part 1: Exploring data structure
+```{r exploring data, include=FALSE}
+
+#Calculating relative abundances and putting it in assays; tse now has count and relative abundance information stored in assays
+tse <- transformCounts(tse, method='relabundance')
+
+#summarizing data by taxonomic rank
+tse_phylum <- agglomerateByRank(tse, rank='Phylum')
+dim(tse_phylum)
+
+#tse_phylum shows there are 5 different phyla groups, e.g. from RowData we see all Firmicutes are combined together
+
+knitr::kable(head(rowData(tse_phylum))) %>%
+  kableExtra::kable_styling('striped', 
+                           latex_options='scale_down') %>%
+  kableExtra::scroll_box(width='100%')
+
+#agglomeration is missing abundances for certain taxa, but can use 'na.rm = TRUE' to remove taxa that do not have information in specified levels
+
+#alternatively can aggregate by a rank, then print out/select taxa that do not have info at the genus level, and note that if they don't have information at a specified level, they are aggregated at the lowest possible level left after agglomeration
+temp <- rowData(agglomerateByRank(tse,rank='Genus'))
+
+knitr::kable(head(temp[temp$Genus=='',])) %>%
+  kableExtra::kable_styling('striped',
+                            latex_options='scale_down') %>%
+  kableExtra::scroll_box(width='100%')
+
+temp2 <- rowData(agglomerateByRank(tse, rank='Genus', na.rm=TRUE))
+print(paste0('Agglomeration with na.rm = FALSE: ', dim(temp)[1], 'taxa.'))
+print(paste0('Agglomeration with na.rm = TRUE: ', dim(temp2)[1], 'taxa.'))
+temp
+
+```
+
+### Part 2: Exploring data visualization
+
+```{r exploring data, include=FALSE}
+#specify 'relabundance' to be the abundance table used for plotting
+#agglomeration is a built-in option, so can use agglomerated or non agglomerated tse as input
+
+plot_abundance <- plotAbundance(tse, abund_values='relabundance', rank='Phylum')+
+  theme(legend.key.height=unit(0.5, 'cm')) + 
+  scale_y_continuous(label=scales::percent)
+
+plot_abundance
+
+#can also do density plots to show ovferall abundance distribution for a taxonomic group, like relative abundance of Firmicutes
+
+#first subset data w/ only Firmicutes
+tse_firmicutes <- tse_phylum['Firmicutes']
+
+#retrieve abundance table
+abundance_firmicutes <- assay(tse_firmicutes, 'relabundance')
+
+#create dataframe object, with first column being abundances
+firmicutes_abund_df <- as.data.frame(t(abundance_firmicutes))
+firmicutes_abund_df
+
+#rename column
+colnames(firmicutes_abund_df) <- 'abund'
+
+#create plot
+firmicutes_abund_plot <- firmicutes_abund_df %>%
+  ggplot(aes(x=abund))+
+  geom_density(color='darkred', fill='lightblue')+
+  labs(x='relative abundance', title='Firmicutes')+
+  theme_classic()+
+  scale_x_continuous(label=scales::percent)
+
+
+firmicutes_abund_plot
+```
