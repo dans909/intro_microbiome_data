@@ -40,11 +40,13 @@ loaded <- sapply(c(bioc_pkg, cran_pkg), require, character.only = TRUE)
 as.data.frame(loaded)
 ```
 
-## [link to lesson](www.google.com)
+## [importing data into R](https://microbiome.github.io/course_2021_radboud/importing-microbiome-data.html)
 
 ## Lesson objectives
 
-Loreum ipsum...
+ADHD Data was imported, data used [textbook](https://microbiome.github.io/OMA/data-introduction.html#loading-experimental-microbiome-data) as guidelines. 
+
+Refer to reports/example_import for exmplary solution
 
 ```{r cars}
 summary(cars)
