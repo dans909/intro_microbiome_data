@@ -149,7 +149,7 @@ head(rowTree(tse))
 - You can also agglomerate (sum up all data) by taxonomic rank
 
 ### Part 1: Exploring data structure
-```{r exploring data, include=FALSE}
+```{r exploring data structures and manipulation, include=FALSE}
 
 #Calculating relative abundances and putting it in assays; tse now has count and relative abundance information stored in assays
 tse <- transformCounts(tse, method='relabundance')
@@ -180,11 +180,80 @@ print(paste0('Agglomeration with na.rm = FALSE: ', dim(temp)[1], 'taxa.'))
 print(paste0('Agglomeration with na.rm = TRUE: ', dim(temp2)[1], 'taxa.'))
 temp
 
+#assays are a list of matrices, and you can access individual assays
+assay(tse, 'counts')[1:5, 1:7]
+
+#access phylogenetic trees with rowTree()
+
+#the links to individual features made available through rowLinks
+rowLinks(se)
+
+#can convert SE data into long data frame via meltAssay, useful for data manipulation and visualization via tidyverse
+molten_tse <- meltAssay(tse,
+                        add_row_data=TRUE,
+                        add_col_data=TRUE,
+                        abund_values='relabundance')
+molten_tse
+
+#Can also subset data, will show example with data GlobalPatterns
+
+#store data into se and check dimensions
+data("GlobalPatterns", package='mia')
+se2 <- GlobalPatterns
+dim(se2)
+
+#Subset and extract data only from HUMAN SAMPLES, this informaiton is stored as SampleType in colData(se), and se
+
+#firstidentify the unique possible sampleType
+unique(se2$SampleType)
+
+#show how many of each sample type
+se2$SampleType %>% table()
+
+#subset by sample, %in% makes sure to include everything from that list in that category
+se2_subset_by_sample <- se2[ ,se2$SampleType %in% c('Feces', 'Skin', 'Tongue')]
+dim(se2_subset_by_sample)
+
+#note you can subset by origin, sampling time, sequencing method, DNA/RNA barcode and cohort
+
+#Next task is to subset by Phyla containing 'Actinobacteria' and 'Chlamydiae'
+#first inspect unique values
+unique(rowData(se2)$Phylum)
+rowData(se2)$Phylum %>% table()
+
+#after subsetting, if you want to find abundancies related to Actinobnact and Chlamydiae separately, then you don't need agglomeration; if you want to find abundances to both, then you need agglomeration.
+
+#note the following object selects features with the 2 aforementioned phyla and filters out features that have NA in place of Phylum
+
+se2_subset_by_feature <- se2[rowData(se2)$Phylum %in% c('Actinobacteria', 'Chlamydiae') & !is.na(rowData(se2)$Phylum),]
+
+dim(se2_subset_by_feature)
+
+se2_subset_by_feature
+
+#Can also agglomerate by Phyla to find out total abundances of certain Phyla
+se2_phylum <- se2 %>% agglomerateByRank(rank='Phylum')
+
+se2_phylum_subset_by_feature <- se2_phylum[rowData(se2_phylum)$Phylum %in% c('Actinobacteria', 'Chlamydiae') & !is.na(rowData(se2_phylum)$Phylum),]
+
+dim(se2_phylum_subset_by_feature)
+
+#you can subset by feature for taxonomic rank and meta-taxonomic group
+#agglomeration merged all the features with the same phlum into one big category to find the total abundance 
+
+#You can also subset sample and feature at the same time, such as here, where we subset human samples, with phyla actinobact and chlamydiae
+
+se2_subset_by_sample_feature <- se2[rowData(se2)$Phylum %in% c('Actinobacteria', 'Chlamydiae') & !is.na(rowData(se2)$Phylum), se2$SampleType %in% c('Feces', 'Skin', 'Tongue')]
+
+dim(se2_subset_by_sample_feature)
+
 ```
 
 ### Part 2: Exploring data visualization
 
-```{r exploring data, include=FALSE}
+Explore [miaViz](https://microbiome.github.io/miaViz/articles/miaViz.html) to explore the different options for data visualization. 
+
+```{r exploring data visualization, include=FALSE}
 #specify 'relabundance' to be the abundance table used for plotting
 #agglomeration is a built-in option, so can use agglomerated or non agglomerated tse as input
 
@@ -220,3 +289,5 @@ firmicutes_abund_plot <- firmicutes_abund_df %>%
 
 firmicutes_abund_plot
 ```
+
+### Part 3: Exercises 
